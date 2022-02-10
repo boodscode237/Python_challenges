@@ -108,3 +108,145 @@ def outer_func(x):
 for i in range(5):
     closure = outer_func(i)
     print(f"closure({i+5}) = {closure(i+5)}")
+    
+    
+# Evolution time
+
+def wrap(n):
+    def f():
+        print(n)
+    
+    def u():
+        print(f"This is {n}")
+    return f, u
+
+
+numbers = 'one', 'two', 'three'
+funcs = []
+for n in numbers:
+    funcs.append(wrap(n))
+
+for f, u in funcs:
+    f()
+    u()
+    
+    
+numbers = 'one', 'two', 'three'
+funcs = []
+for n in numbers:
+    funcs.append(lambda n=n: print(n))
+
+for f in funcs:
+    f()
+    
+"""
+A Python lambda function behaves like a normal function in regard to arguments. Therefore, a lambda parameter can be initialized with a default value: the parameter n takes the outer n as a default value. The Python lambda function could have been written as lambda x=n: print(x) and have the same result.
+"""
+
+'''
+The unittest module handles Python lambda functions similarly to regular functions:
+'''
+
+import unittest
+
+addtwo = lambda x: x + 2
+
+class LambdaTest(unittest.TestCase):
+    def test_add_two(self):
+        self.assertEqual(addtwo(2), 4)
+
+    def test_add_two_point_two(self):
+        self.assertEqual(addtwo(2.2), 4.2)
+
+    def test_add_three(self):
+        # Should fail
+        self.assertEqual(addtwo(3), 6)
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)
+    
+# Python Classes
+
+'''
+You can but should not write class methods as Python lambda functions.
+'''
+class Car:
+    """Car with methods as lambda functions."""
+    def __init__(self, brand, year):
+        self.brand = brand
+        self.year = year
+
+    brand = property(lambda self: getattr(self, '_brand'),
+                     lambda self, value: setattr(self, '_brand', value))
+
+    year = property(lambda self: getattr(self, '_year'),
+                    lambda self, value: setattr(self, '_year', value))
+
+    __str__ = lambda self: f'{self.brand} {self.year}'  # 1: error E731
+
+    honk = lambda self: print('Honk!')     # 2: error E731
+
+
+# Appropriate Uses of Lambda Expressions
+
+'''
+Lambda functions are regularly used with the built-in functions map() and filter(), as well as functools.reduce()
+'''
+
+list(map(lambda x: x.upper(), ['cat', 'dog', 'cow']))
+
+list(filter(lambda x: 'o' in x, ['cat', 'dog', 'cow']))
+
+from functools import reduce
+reduce(lambda acc, x: f'{acc} | {x}', ['cat', 'dog', 'cow'])
+
+# sorting
+
+ids = ['id1', 'id2', 'id30', 'id3', 'id22', 'id100']
+print(sorted(ids)) # Lexicographic sort
+
+sorted_ids = sorted(ids, key=lambda x: int(x[2:])) # Integer sort
+print(sorted_ids)
+
+
+from timeit import timeit
+print(timeit("factorial(999)", "from math import factorial", number=10))
+
+from math import factorial
+print(timeit(lambda: factorial(999), number=10))
+
+
+# Monkey Patching
+
+from contextlib import contextmanager
+import secrets
+
+def gen_token():
+    """Generate a random token."""
+    return f'TOKEN_{secrets.token_hex(8)}'
+
+@contextmanager
+def mock_token():
+    """Context manager to monkey patch the secrets.token_hex
+    function during testing.
+    """
+    default_token_hex = secrets.token_hex
+    secrets.token_hex = lambda _: 'feedfacecafebeef'
+    yield
+    secrets.token_hex = default_token_hex
+
+def test_gen_key():
+    """Test the random token."""
+    with mock_token():
+        assert gen_token() == f"TOKEN_{'feedfacecafebeef'}"
+
+print(test_gen_key())
+
+import secrets
+
+def gen_token():
+    return f'TOKEN_{secrets.token_hex(8)}'
+
+def test_gen_key(monkeypatch):
+    monkeypatch.setattr('secrets.token_hex', lambda _: 'feedfacecafebeef')
+    assert gen_token() == f"TOKEN_{'feedfacecafebeef'}"
